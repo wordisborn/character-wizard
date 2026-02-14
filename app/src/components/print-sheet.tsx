@@ -1,6 +1,18 @@
 "use client";
 
 import type { Character } from "@/types/character";
+import {
+  getProficiencyBonus,
+  getAbilityModifier,
+  formatModifier,
+  getSavingThrow,
+  getSkillBonus,
+  getPassivePerception,
+  getSpellSaveDC,
+  getSpellAttackBonus,
+  SKILL_ABILITY_MAP,
+  ABILITY_NAMES,
+} from "@/lib/character-utils";
 
 function mod(score: number) {
   if (score <= 0) return "";
@@ -61,6 +73,8 @@ export function PrintSheet({
 function SheetContent({ character }: { character: Character }) {
   const backstory = character.backstory;
   const appearance = character.appearance;
+  const profBonus = getProficiencyBonus(character.level);
+  const hasScores = character.abilityScores.strength > 0;
 
   return (
     <div style={{ fontFamily: "Georgia, serif", color: "#2c1810" }}>
@@ -80,8 +94,11 @@ function SheetContent({ character }: { character: Character }) {
           <div style={{ fontSize: 12, color: "#8b6914", textTransform: "uppercase", letterSpacing: 2, marginTop: 2 }}>
             {[
               character.race,
+              character.subrace ? `(${character.subrace})` : "",
               character.class,
+              character.subclass ? `(${character.subclass})` : "",
               character.level > 0 ? `Level ${character.level}` : "",
+              character.alignment,
               character.edition,
             ]
               .filter(Boolean)
@@ -90,20 +107,9 @@ function SheetContent({ character }: { character: Character }) {
         </div>
       </div>
 
-      {/* Top row: Identity + Combat + Ability Scores — all in a row */}
+      {/* Top row: Ability Scores + Combat Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Left column: Identity fields */}
-        <div>
-          <SectionTitle>Identity</SectionTitle>
-          <FieldRow label="Name" value={character.name} />
-          <FieldRow label="Race" value={character.race} />
-          <FieldRow label="Class" value={character.class} />
-          <FieldRow label="Level" value={character.level > 0 ? String(character.level) : ""} />
-          <FieldRow label="Background" value={character.background} />
-          <FieldRow label="Hit Points" value={character.hitPoints > 0 ? String(character.hitPoints) : ""} />
-        </div>
-
-        {/* Right column: Ability Scores */}
+        {/* Left column: Identity + Ability Scores */}
         <div>
           <SectionTitle>Ability Scores</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 4 }}>
@@ -130,14 +136,143 @@ function SheetContent({ character }: { character: Character }) {
               </div>
             ))}
           </div>
+
+          {/* Saving Throws */}
+          {hasScores && (
+            <>
+              <SectionTitle>Saving Throws</SectionTitle>
+              <div style={{ marginTop: 2 }}>
+                {ABILITY_NAMES.map((a) => {
+                  const isProficient = character.savingThrowProficiencies.includes(a.key);
+                  const total = getSavingThrow(character.abilityScores[a.key], isProficient, profBonus);
+                  return (
+                    <div key={a.key} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, margin: "1px 0" }}>
+                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", border: "1px solid #8b6914", background: isProficient ? "#8b6914" : "transparent" }} />
+                      <span style={{ fontWeight: 600, color: "#8b6914", width: 24 }}>{formatModifier(total)}</span>
+                      <span>{a.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Right column: Combat Stats */}
+        <div>
+          <SectionTitle>Combat</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 4 }}>
+            <div style={{ border: "1px solid #c4b89a", padding: "4px 2px", textAlign: "center" }}>
+              <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: "#8b7355" }}>AC</div>
+              <div style={{ fontSize: 18, fontWeight: "bold" }}>
+                {character.armorClass > 0 ? character.armorClass : hasScores ? 10 + getAbilityModifier(character.abilityScores.dexterity) : "—"}
+              </div>
+            </div>
+            <div style={{ border: "1px solid #c4b89a", padding: "4px 2px", textAlign: "center" }}>
+              <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: "#8b7355" }}>Init</div>
+              <div style={{ fontSize: 18, fontWeight: "bold" }}>{hasScores ? formatModifier(getAbilityModifier(character.abilityScores.dexterity)) : "—"}</div>
+            </div>
+            <div style={{ border: "1px solid #c4b89a", padding: "4px 2px", textAlign: "center" }}>
+              <div style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, color: "#8b7355" }}>Speed</div>
+              <div style={{ fontSize: 18, fontWeight: "bold" }}>{character.speed > 0 ? `${character.speed}` : "—"}</div>
+            </div>
+          </div>
+          <FieldRow label="Hit Points" value={character.hitPoints > 0 ? String(character.hitPoints) : ""} />
+          {character.hitDice && <FieldRow label="Hit Dice" value={character.hitDice} />}
+          <FieldRow label="Prof. Bonus" value={hasScores ? formatModifier(profBonus) : ""} />
+          {hasScores && (
+            <FieldRow label="Passive Perception" value={String(getPassivePerception(
+              character.abilityScores.wisdom,
+              character.skillProficiencies.map((s) => s.toLowerCase()).includes("perception"),
+              profBonus
+            ))} />
+          )}
+
+          {/* Attacks */}
+          {character.attacks.length > 0 && (
+            <>
+              <SectionTitle>Attacks</SectionTitle>
+              {character.attacks.map((atk, i) => (
+                <div key={i} style={{ fontSize: 11, margin: "2px 0" }}>
+                  <strong>{atk.name}</strong> {atk.bonus} — {atk.damage}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
-      {/* Middle row: Proficiencies + Equipment */}
+      {/* Skills */}
+      {hasScores && (
+        <div style={{ marginTop: 4 }}>
+          <SectionTitle>Skills</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px 16px", marginTop: 2 }}>
+            {SKILL_ABILITY_MAP.map((s) => {
+              const isProficient = character.skillProficiencies.map((sk) => sk.toLowerCase()).includes(s.skill);
+              const bonus = getSkillBonus(character.abilityScores[s.ability], isProficient, profBonus);
+              return (
+                <div key={s.skill} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, margin: "0.5px 0" }}>
+                  <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid #8b6914", background: isProficient ? "#8b6914" : "transparent" }} />
+                  <span style={{ fontWeight: 600, color: "#8b6914", width: 20, fontSize: 10 }}>{formatModifier(bonus)}</span>
+                  <span>{s.label}</span>
+                  <span style={{ color: "#8b7355", fontSize: 9 }}>({s.abilityAbbr})</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Personality */}
+      {(character.personalityTraits || character.ideals || character.bonds || character.flaws) && (
+        <div style={{ marginTop: 4 }}>
+          <SectionTitle>Personality</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 2 }}>
+            {character.personalityTraits && (
+              <div>
+                <strong style={{ color: "#5c4a32", fontSize: 10 }}>Traits</strong>
+                <p style={{ fontSize: 10, lineHeight: 1.4, marginTop: 1 }}>{character.personalityTraits}</p>
+              </div>
+            )}
+            {character.ideals && (
+              <div>
+                <strong style={{ color: "#5c4a32", fontSize: 10 }}>Ideals</strong>
+                <p style={{ fontSize: 10, lineHeight: 1.4, marginTop: 1 }}>{character.ideals}</p>
+              </div>
+            )}
+            {character.bonds && (
+              <div>
+                <strong style={{ color: "#5c4a32", fontSize: 10 }}>Bonds</strong>
+                <p style={{ fontSize: 10, lineHeight: 1.4, marginTop: 1 }}>{character.bonds}</p>
+              </div>
+            )}
+            {character.flaws && (
+              <div>
+                <strong style={{ color: "#5c4a32", fontSize: 10 }}>Flaws</strong>
+                <p style={{ fontSize: 10, lineHeight: 1.4, marginTop: 1 }}>{character.flaws}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Features */}
+      {character.features.length > 0 && (
+        <div style={{ marginTop: 4 }}>
+          <SectionTitle>Features & Traits</SectionTitle>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
+            {character.features.map((f, i) => (
+              <span key={i} style={{ border: "1px solid #c4b89a", padding: "1px 6px", fontSize: 10 }}>{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Proficiencies, Languages, Equipment */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 4 }}>
         <div>
-          <SectionTitle>Proficiencies</SectionTitle>
-          {character.proficiencies.length > 0 ? (
+          <SectionTitle>Proficiencies & Languages</SectionTitle>
+          {character.proficiencies.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
               {character.proficiencies.map((p, i) => (
                 <span key={i} style={{ border: "1px solid #c4b89a", padding: "1px 6px", fontSize: 11 }}>
@@ -145,7 +280,14 @@ function SheetContent({ character }: { character: Character }) {
                 </span>
               ))}
             </div>
-          ) : (
+          )}
+          {character.languages.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: "#5c4a32", fontWeight: 600 }}>Languages: </span>
+              <span style={{ fontSize: 11 }}>{character.languages.join(", ")}</span>
+            </div>
+          )}
+          {character.proficiencies.length === 0 && character.languages.length === 0 && (
             <span style={{ color: "#8b7355", fontStyle: "italic", fontSize: 12 }}>None yet</span>
           )}
         </div>
@@ -162,13 +304,57 @@ function SheetContent({ character }: { character: Character }) {
           ) : (
             <span style={{ color: "#8b7355", fontStyle: "italic", fontSize: 12 }}>None yet</span>
           )}
+          {(character.currency.gp > 0 || character.currency.sp > 0 || character.currency.cp > 0) && (
+            <div style={{ marginTop: 4, fontSize: 11 }}>
+              <span style={{ fontSize: 10, color: "#5c4a32", fontWeight: 600 }}>Currency: </span>
+              {[
+                character.currency.pp > 0 ? `${character.currency.pp} PP` : "",
+                character.currency.gp > 0 ? `${character.currency.gp} GP` : "",
+                character.currency.ep > 0 ? `${character.currency.ep} EP` : "",
+                character.currency.sp > 0 ? `${character.currency.sp} SP` : "",
+                character.currency.cp > 0 ? `${character.currency.cp} CP` : "",
+              ].filter(Boolean).join(", ")}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Spellcasting */}
+      {character.spellcasting && (
+        <div style={{ marginTop: 4 }}>
+          <SectionTitle>Spellcasting</SectionTitle>
+          <div style={{ display: "flex", gap: 16, fontSize: 11, marginTop: 2 }}>
+            <span><strong>Ability:</strong> {character.spellcasting.spellcastingAbility?.slice(0, 3).toUpperCase()}</span>
+            {hasScores && character.spellcasting.spellcastingAbility && (
+              <>
+                <span><strong>Save DC:</strong> {getSpellSaveDC(character.abilityScores[character.spellcasting.spellcastingAbility as keyof typeof character.abilityScores] || 0, profBonus)}</span>
+                <span><strong>Attack:</strong> {formatModifier(getSpellAttackBonus(character.abilityScores[character.spellcasting.spellcastingAbility as keyof typeof character.abilityScores] || 0, profBonus))}</span>
+              </>
+            )}
+            {character.spellcasting.spellSlots && Object.entries(character.spellcasting.spellSlots).map(([lvl, count]) => (
+              <span key={lvl}><strong>Lv{lvl} Slots:</strong> {count}</span>
+            ))}
+          </div>
+          {character.spellcasting.cantripsKnown && character.spellcasting.cantripsKnown.length > 0 && (
+            <div style={{ marginTop: 3, fontSize: 11 }}>
+              <strong style={{ color: "#5c4a32", fontSize: 10 }}>Cantrips:</strong>{" "}
+              {character.spellcasting.cantripsKnown.join(", ")}
+            </div>
+          )}
+          {character.spellcasting.spellsKnown && character.spellcasting.spellsKnown.length > 0 && (
+            <div style={{ marginTop: 2, fontSize: 11 }}>
+              <strong style={{ color: "#5c4a32", fontSize: 10 }}>Spells:</strong>{" "}
+              {character.spellcasting.spellsKnown.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bottom: Backstory + Appearance */}
       {(backstory || appearance) && (
         <div style={{ marginTop: 4 }}>
           <SectionTitle>Background & Story</SectionTitle>
+          {character.background && <FieldRow label="Background" value={character.background} />}
           <div style={{ display: "grid", gridTemplateColumns: backstory && appearance ? "1fr 1fr" : "1fr", gap: 16, marginTop: 2 }}>
             {backstory && (
               <div>

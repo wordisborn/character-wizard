@@ -29,6 +29,22 @@ function characterReducer(state: Character, action: Action): Character {
           : state.abilityScores,
         proficiencies: updates.proficiencies ?? state.proficiencies,
         equipment: updates.equipment ?? state.equipment,
+        savingThrowProficiencies: updates.savingThrowProficiencies ?? state.savingThrowProficiencies,
+        skillProficiencies: updates.skillProficiencies ?? state.skillProficiencies,
+        languages: updates.languages ?? state.languages,
+        features: updates.features ?? state.features,
+        attacks: updates.attacks ?? state.attacks,
+        deathSaves: updates.deathSaves
+          ? { ...state.deathSaves, ...updates.deathSaves }
+          : state.deathSaves,
+        spellcasting: updates.spellcasting !== undefined
+          ? updates.spellcasting
+            ? { ...state.spellcasting, ...updates.spellcasting }
+            : updates.spellcasting
+          : state.spellcasting,
+        currency: updates.currency
+          ? { ...state.currency, ...updates.currency }
+          : state.currency,
       };
     }
     case "RESET":
