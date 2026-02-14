@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-serif: var(--font-cormorant), Georgia, serif;
+  --font-body: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-barlow), system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+/* Parchment scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ede3d1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4b89a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8a88a;
+}
+
+/* Highlight animation for character sheet updates */
+@keyframes highlight-fade {
+  0% {
+    background-color: #8b691430;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-update {
+  animation: highlight-fade 1.5s ease-out;
+}
+
+/* Toast animation */
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}
+
+/* Bottom sheet animations */
+@keyframes slide-up {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.bottom-sheet-enter {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+.bottom-sheet-exit {
+  animation: slide-down 0.3s ease-in forwards;
+}
+
+/* Print styles — single-page character sheet */
+@page {
+  size: letter portrait;
+  margin: 0.5in;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything that's not the print sheet */
+  .screen-only,
+  .bottom-sheet-enter,
+  .bottom-sheet-exit {
+    display: none !important;
+  }
+
+  /* Show the print sheet */
+  .print-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100vh;
+    overflow: hidden;
+    background: white !important;
+    color: #2c1810;
+    font-family: Georgia, serif;
+    padding: 0;
+    box-sizing: border-box;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+}

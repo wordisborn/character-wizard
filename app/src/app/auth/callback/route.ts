@@ -1,0 +1,16 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url);
+  const code = searchParams.get("code");
+  const action = searchParams.get("action");
+
+  if (code) {
+    const supabase = await createClient();
+    await supabase.auth.exchangeCodeForSession(code);
+  }
+
+  // Redirect back to the app
+  return NextResponse.redirect(`${origin}/?action=${action || "save"}`);
+}
