@@ -5,7 +5,7 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 
-export const maxDuration = 45;
+export const maxDuration = 60;
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 

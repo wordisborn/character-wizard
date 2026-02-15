@@ -48,10 +48,11 @@ function findBestPortrait(race: string, charClass: string) {
 interface CharacterPreviewProps {
   character: Character;
   characterId?: string;
+  isLoggedIn?: boolean;
   onPortraitGenerated?: (portraitUrl: string) => void;
 }
 
-export function CharacterPreview({ character, characterId, onPortraitGenerated }: CharacterPreviewProps) {
+export function CharacterPreview({ character, characterId, isLoggedIn, onPortraitGenerated }: CharacterPreviewProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,8 +154,8 @@ export function CharacterPreview({ character, characterId, onPortraitGenerated }
                 </p>
               )}
             </div>
-            {/* Regenerate button — on hover */}
-            {hovering && !generating && (
+            {/* Regenerate button — on hover, logged-in only */}
+            {hovering && !generating && isLoggedIn && (
               <button
                 onClick={handleGenerate}
                 className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0A0A]/70 border border-[#8B6914]/50 hover:bg-[#0A0A0A]/90 hover:border-[#8B6914] transition-all"
@@ -191,19 +192,27 @@ export function CharacterPreview({ character, characterId, onPortraitGenerated }
                 </p>
               )}
             </div>
-            {/* Generate Portrait button */}
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#8B6914] hover:bg-[#7A5B10] transition-colors disabled:opacity-50"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 1l1.5 3.5L11 6l-3.5 1.5L6 11 4.5 7.5 1 6l3.5-1.5z" fill="#F2E8D5" />
-              </svg>
-              <span className="font-[family-name:var(--font-barlow)] text-[10px] font-semibold text-[#F2E8D5] tracking-wide uppercase">
-                Generate Portrait
-              </span>
-            </button>
+            {/* Generate Portrait button — logged-in only */}
+            {isLoggedIn ? (
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#8B6914] hover:bg-[#7A5B10] transition-colors disabled:opacity-50"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1l1.5 3.5L11 6l-3.5 1.5L6 11 4.5 7.5 1 6l3.5-1.5z" fill="#F2E8D5" />
+                </svg>
+                <span className="font-[family-name:var(--font-barlow)] text-[10px] font-semibold text-[#F2E8D5] tracking-wide uppercase">
+                  Generate Portrait
+                </span>
+              </button>
+            ) : (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#0A0A0A]/50 border border-[#8B6914]/30">
+                <span className="font-[family-name:var(--font-barlow)] text-[10px] text-[#C9A962]/70 tracking-wide">
+                  Sign in to generate portrait
+                </span>
+              </div>
+            )}
           </>
         ) : (
           /* Empty state — before race/class chosen */

@@ -92,7 +92,7 @@ body {
   animation: slide-down 0.3s ease-in forwards;
 }
 
-/* Print styles — single-page character sheet */
+/* Print styles — multi-page character sheet */
 @page {
   size: letter portrait;
   margin: 0.5in;
@@ -125,14 +125,15 @@ body {
     position: static !important;
     width: 100% !important;
     height: auto !important;
-    max-height: 100vh;
-    overflow: hidden;
+    overflow: visible;
     background: white !important;
     color: #2c1810;
     font-family: Georgia, serif;
     padding: 0;
     box-sizing: border-box;
-    page-break-after: avoid;
-    page-break-inside: avoid;
+  }
+
+  .print-page-break {
+    page-break-before: always;
   }
 }

@@ -439,6 +439,7 @@ function AppLayout({
             <CharacterPreview
               character={character}
               characterId={savedId}
+              isLoggedIn={!!user}
               onPortraitGenerated={async (url) => {
                 dispatch({ type: "UPDATE_CHARACTER", payload: { portraitUrl: url } });
                 // Auto-save portrait URL to DB if character is already saved
@@ -508,7 +509,14 @@ function AppLayout({
             // After signing in, save immediately
             await handleSave();
           }}
-          characterToSave={character as unknown as Record<string, unknown>}
+          characterToSave={{
+            ...(character as unknown as Record<string, unknown>),
+            chatHistory: messages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+            })),
+          }}
         />
         <PrintModal
           open={printModalOpen}
